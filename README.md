@@ -27,6 +27,7 @@
 | 模型 | 可用模型列表；查询指定模型的比例 / 分辨率 / 时长选项 |
 | 积分 | 查询账户积分余额与扣点记录 |
 | 下载 | 按 `pid` 取预览与下载临时链（涉及扣点，以平台规则为准） |
+| 发布 | 将 AI 生成作品发布为正式素材：分类树、AI 补全标题/关键词/分类建议、发布（默认直接送审）/存草稿，仅限设计师身份账号 |
 | 生图 / 做同款 | 提交任务、查询状态（文生图无需垫图）；支持比例参数；复杂 body 可用 `--body-file` |
 | 视频生成 | 文生视频 / 图生视频，支持比例 / 清晰度 / 时长 / 结束帧 |
 | 工作流 | 列出、读取、创建、完整保存、运行可编辑工作流画布 |
@@ -342,17 +343,30 @@ Base URL 解析顺序：
 | `58pic same-style-status <ai_id>` | 查询生图任务状态 |
 | `58pic generate-video` | 提交视频生成任务，支持 `--aspect`、`--resolution`、`--duration`、`--end-frame-url` |
 
+**发布（仅限设计师身份账号）**
+
+| 命令 | 说明 |
+|------|------|
+| `58pic categories` | `open-platform/categories`，返回完整三级分类树（did/kid/bid） |
+| `58pic suggest-meta` | `POST` `open-platform/suggest-meta`，需 `--ai-id`；返回该 AI 生成任务缺失的 title/keyword/分类 AI 补全建议，响应可能需要数秒到十几秒 |
+| `58pic publish` | `POST` `open-platform/publish`，需 `--ai-id`、`--category-did`/`--category-kid`/`--category-bid`、`--title`；`--keyword` 可重复传入多次（至少 5 个）；默认直接送审，加 `--no-submit` 改为存草稿 |
+
 查看某命令全部参数：
 
 ```bash
 58pic auth login --help
 58pic same-style --help
 58pic generate-video --help
+58pic publish --help
 
 # 文生图
 58pic same-style -m <模型ID> --prompt "一只水彩风格的猫" --aspect "1:1"
 # 视频生成
 58pic generate-video -m <模型ID> --prompt "城市夜景延时" --aspect "16:9" --resolution "1080p"
+# 发布AI作品（先看有没有缺字段需要AI补全）
+58pic suggest-meta --ai-id <ai_detail_id>
+58pic publish --ai-id <ai_detail_id> --category-did 60 --category-kid <kid> --category-bid <bid> \
+  --title "标题" --keyword "词1" --keyword "词2" --keyword "词3" --keyword "词4" --keyword "词5"
 ```
 
 ### 2. 通用 `api`（未封装路由）

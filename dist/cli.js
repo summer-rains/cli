@@ -507,6 +507,69 @@ async function main() {
         });
         printEnvelope(fmtOf(opts.format), http, resp, true);
     });
+    const categories = program
+        .command("categories")
+        .description("快捷：GET open-platform/categories（发布AI作品用三级分类树 did/kid/bid，一次性拿全量）");
+    addGlobalOpts(categories);
+    categories.action(async (opts) => {
+        const file = await loadConfig();
+        const ctx = await getCtx(opts, file);
+        const { http, body } = await pic58Request(ctx, "categories", {
+            method: "GET",
+        });
+        printEnvelope(fmtOf(opts.format), http, body, true);
+    });
+    const suggestMeta = program
+        .command("suggest-meta")
+        .description("快捷：POST open-platform/suggest-meta（title/keyword/分类缺失时的AI补全建议，仅限设计师身份账号，响应可能需要数秒到十几秒）");
+    addGlobalOpts(suggestMeta);
+    suggestMeta
+        .requiredOption("--ai-id <id>", "AI 生成任务 id（ai_detail_id，即 same-style-status 返回的 details[].id）")
+        .action(async (opts) => {
+        const file = await loadConfig();
+        const ctx = await getCtx(opts, file);
+        const body = {
+            ai_detail_id: /^\d+$/.test(opts.aiId) ? Number(opts.aiId) : opts.aiId,
+        };
+        const { http, body: resp } = await pic58Request(ctx, "suggest-meta", {
+            method: "POST",
+            jsonBody: body,
+        });
+        printEnvelope(fmtOf(opts.format), http, resp, true);
+    });
+    const publish = program
+        .command("publish")
+        .description("快捷：POST open-platform/publish（发布AI作品为正式素材，默认直接送审，仅限设计师身份账号）");
+    addGlobalOpts(publish);
+    publish
+        .requiredOption("--ai-id <id>", "AI 生成任务 id（ai_detail_id）")
+        .requiredOption("--category-did <did>", "一级分类 id（AI 建议分类固定为 60，也可用 58pic categories 选其他分类）")
+        .requiredOption("--category-kid <kid>", "二级分类 id（58pic categories 获取）")
+        .requiredOption("--category-bid <bid>", "三级分类 id（58pic categories 获取）")
+        .requiredOption("--title <text>", "作品标题")
+        .option("--keyword <word>", "关键词，至少需要 5 个；本参数可重复传入多次", (val, prev) => [...prev, val], [])
+        .option("--theme-id <id>", "主题 id（可选）")
+        .option("--no-submit", "只存草稿，不直接送审（默认不加此参数即直接送审，送审前请再次和用户确认）")
+        .action(async (opts) => {
+        const file = await loadConfig();
+        const ctx = await getCtx(opts, file);
+        const body = {
+            ai_detail_id: /^\d+$/.test(opts.aiId) ? Number(opts.aiId) : opts.aiId,
+            did: Number(opts.categoryDid),
+            kid: Number(opts.categoryKid),
+            bid: Number(opts.categoryBid),
+            title: opts.title,
+            keyword: opts.keyword,
+            is_submit: opts.submit ? 1 : 0,
+        };
+        if (opts.themeId)
+            body.theme_id = Number(opts.themeId);
+        const { http, body: resp } = await pic58Request(ctx, "publish", {
+            method: "POST",
+            jsonBody: body,
+        });
+        printEnvelope(fmtOf(opts.format), http, resp, true);
+    });
     const apiCmd = program
         .command("api")
         .description("通用调用：指定路由名（含或不含 open-platform/ 前缀）与 JSON 请求体")
